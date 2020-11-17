@@ -1,17 +1,19 @@
 # nodetest
-Playing with nodejs
+### Playing with nodejs
 
 
 
 1. To build locally: `docker build . -t nodetest`
 1. To run locally: `docker run -p 8080:8080 nodetest:latest`
 1. To test: `http://localhost:8080/one` (one, two..., ten)
-1. A version of this docker image is already uploaded to `quay.io/bjoydeep/nodetest:latest`
+
+### Deploying to OpenShift
+1. The docker image for this code is already uploaded to `quay.io/bjoydeep/nodetest:latest`
 1. To deploy on OpenShift: 
     ```
-    oc login to the cluster
+    oc login to your cluster
 
-    then set your namespace
+    then set the namespace to which you want to deploy this
 
     kubectl apply -k deploy/
     ```
