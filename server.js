@@ -3,6 +3,14 @@
 const express = require('express');
 const app = express();
 
+// Initialize Prometheus exporter
+const prom = require('prom-client')
+const prom_gc = require('prometheus-gc-stats')
+
+prom.collectDefaultMetrics();
+//prom_gc();
+const startGcStats = prom_gc();
+startGcStats();
 
 const PORT = 8080;
 var counter =1 ;
@@ -29,8 +37,29 @@ var delaySig = getRandomInt(1, 50);
 var gaussian = require('gaussian');
 var distribution = gaussian(10, 64);
 
+const hitCounter = new prom.Counter({
+    name: 'total_hit_count',
+    help: 'Total number of hits',
+    labelNames: ['route']
+})
+const httpRequestDurationMicroseconds = new prom.Histogram({
+    name: 'http_request_duration_ms',
+    help: 'Duration of HTTP requests in ms',
+    labelNames: ['method', 'route', 'code'],
+    buckets: [0.10, 5, 15, 50, 100, 200, 300, 400, 500]  // buckets for response time from 0.1ms to 500ms
+})
+  
+// Runs before each requests
+/* app.use((req, res, next) => {
+    res.locals.startEpoch = Date.now()
+    next()
+}) */
+  
 
 app.get("/", function (request, response) {
+    hitCounter.inc({
+        route: request.route.path
+    })
 	var hit = counter++;
 	//if (hit==delaySig)
 	if (Math.abs(hit-delaySig) <=6)
@@ -64,6 +93,9 @@ app.get("/", function (request, response) {
 
 
 app.get("/one", function (request, response) {
+    hitCounter.inc({
+        route: request.route.path
+    })
     response.setHeader('Content-Type', 'application/json');
     // the null,3 prettifies the returned json. No clue why 3 is needed
     // the new line makes sure that if you run curl, it gives you the command prompt in the next line
@@ -71,6 +103,9 @@ app.get("/one", function (request, response) {
 });
 
 app.get("/two", function (request, response) {
+    hitCounter.inc({
+        route: request.route.path
+    })
     response.setHeader('Content-Type', 'application/json');
     // the null,3 prettifies the returned json. No clue why 3 is needed
     // the new line makes sure that if you run curl, it gives you the command prompt in the next line
@@ -78,6 +113,9 @@ app.get("/two", function (request, response) {
 });
 
 app.get("/three", function (request, response) {
+    hitCounter.inc({
+        route: request.route.path
+    })
     response.setHeader('Content-Type', 'application/json');
     // the null,3 prettifies the returned json. No clue why 3 is needed
     // the new line makes sure that if you run curl, it gives you the command prompt in the next line
@@ -85,6 +123,9 @@ app.get("/three", function (request, response) {
 });
 
 app.get("/four", function (request, response) {
+    hitCounter.inc({
+        route: request.route.path
+    })
     response.setHeader('Content-Type', 'application/json');
     // the null,3 prettifies the returned json. No clue why 3 is needed
     // the new line makes sure that if you run curl, it gives you the command prompt in the next line
@@ -92,6 +133,9 @@ app.get("/four", function (request, response) {
 });
 
 app.get("/five", function (request, response) {
+    hitCounter.inc({
+        route: request.route.path
+    })
     response.setHeader('Content-Type', 'application/json');
     // the null,3 prettifies the returned json. No clue why 3 is needed
     // the new line makes sure that if you run curl, it gives you the command prompt in the next line
@@ -99,6 +143,9 @@ app.get("/five", function (request, response) {
 });
 
 app.get("/six", function (request, response) {
+    hitCounter.inc({
+        route: request.route.path
+    })
     response.setHeader('Content-Type', 'application/json');
     // the null,3 prettifies the returned json. No clue why 3 is needed
     // the new line makes sure that if you run curl, it gives you the command prompt in the next line
@@ -106,6 +153,9 @@ app.get("/six", function (request, response) {
 });
 
 app.get("/seven", function (request, response) {
+    hitCounter.inc({
+        route: request.route.path
+    })
     response.setHeader('Content-Type', 'application/json');
     // the null,3 prettifies the returned json. No clue why 3 is needed
     // the new line makes sure that if you run curl, it gives you the command prompt in the next line
@@ -113,6 +163,9 @@ app.get("/seven", function (request, response) {
 });
 
 app.get("/eight", function (request, response) {
+    hitCounter.inc({
+        route: request.route.path
+    })
     response.setHeader('Content-Type', 'application/json');
     // the null,3 prettifies the returned json. No clue why 3 is needed
     // the new line makes sure that if you run curl, it gives you the command prompt in the next line
@@ -120,6 +173,9 @@ app.get("/eight", function (request, response) {
 });
 
 app.get("/nine", function (request, response) {
+    hitCounter.inc({
+        route: request.route.path
+    })
     response.setHeader('Content-Type', 'application/json');
     // the null,3 prettifies the returned json. No clue why 3 is needed
     // the new line makes sure that if you run curl, it gives you the command prompt in the next line
@@ -127,14 +183,21 @@ app.get("/nine", function (request, response) {
 });
 
 app.get("/ten", function (request, response) {
-
+    hitCounter.inc({
+        route: request.route.path
+    })
     response.setHeader('Content-Type', 'application/json');
     // the null,3 prettifies the returned json. No clue why 3 is needed
     // the new line makes sure that if you run curl, it gives you the command prompt in the next line
+    response.status(500);
     response.send(JSON.stringify({ "Album": "Doors: The Doors" }, null, 3)+ '\n');
 
 });
 
+// Export Prometheus metrics from /metrics endpoint
+app.get('/metrics', function(req, res) {
+    res.end(prom.register.metrics());
+    });
 
 app.listen(PORT);
 console.log('Running on http://localhost:' + PORT);
